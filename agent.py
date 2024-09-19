@@ -19,8 +19,8 @@ from leap import leap
 logger = logging.getLogger(__name__)
 
 class Agent:
-    def __init__(self, client, model: str, max_attempts: int = 3):
-        self.client = client
+    def __init__(self, pipeline, model: str, max_attempts: int = 3):
+        self.pipeline = pipeline
         self.model = model
         self.max_attempts = max_attempts
         self.approaches = {
@@ -61,15 +61,8 @@ class Agent:
         Include 1 to 3 approach objects in the array. Ensure that the response is a valid JSON array.
         """
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.2,
-            max_tokens=4096,
-        )
-
-        raw_content = response.choices[0].message.content
-        # logger.info(f"Raw response for choosing approach: {raw_content}")
+        response = self.pipeline(prompt, max_new_tokens=4096, do_sample=True, temperature=0.2)
+        raw_content = response[0]['generated_text']
 
         # Remove any markdown code block formatting
         cleaned_content = re.sub(r'```json\s*|\s*```', '', raw_content).strip()
@@ -153,15 +146,11 @@ class Agent:
         }}
         """
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": reflection_prompt}],
-            temperature=0.2,
-            max_tokens=8192,
-        )
+        response = self.pipeline(reflection_prompt, max_new_tokens=8192, do_sample=True, temperature=0.2)
+        raw_content = response[0]['generated_text']
 
         try:
-            reflection_data = json.loads(response.choices[0].message.content)
+            reflection_data = json.loads(raw_content)
             logger.info("Reflection completed successfully")
             return reflection_data
         except json.JSONDecodeError as e:
