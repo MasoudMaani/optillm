@@ -1,6 +1,5 @@
 import signal
 from typing import Dict, Any
-from z3 import *
 import io
 import re
 import contextlib
